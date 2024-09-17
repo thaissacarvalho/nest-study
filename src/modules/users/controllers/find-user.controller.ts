@@ -1,7 +1,9 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { UserService } from '../user.service';
 import { Users } from '@prisma/client';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Encontrar usuários')
 @Controller('users')
 export class FindsUserController {
 	constructor(private readonly userService: UserService) {}

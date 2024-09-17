@@ -3,31 +3,44 @@ import { AuthService } from '../auth.service';
 import { JwtAuthGuard } from '../jwt.guard';
 import { ChangePasswordDTO } from 'src/modules/auth/dtoInfra/change-password.dto';
 import { ForgotPasswordDTO } from '../dtoInfra/forgot-password.dto';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { AccessLoginDTO } from '../dtoInfra/access-login.dto';
+import { RefreshTokenDTO } from '../dtoInfra/refresh-token.dto';
+import { ResetPasswordDTO } from '../dtoInfra/reset-password.dto';
 
+@ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
 	constructor(private readonly authService: AuthService) {}
 
 	@Post('login')
-	async login(@Body() body: { email: string; password: string }) {
+	@ApiBody({ type: AccessLoginDTO })
+	async login(@Body() accessLoginDTO: AccessLoginDTO) {
 		return this.authService.login(
-			await this.authService.validateUser(body.email, body.password),
+			await this.authService.validateUser(
+				accessLoginDTO.email,
+				accessLoginDTO.password,
+			),
 		);
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@Post('access-token')
-	getProfile(@Req() req) {
+	@ApiBearerAuth()
+	async getProfile(@Req() req) {
 		return req.user;
 	}
 
 	@Post('refresh-token')
-	async restartToken(@Body('refresh_token') refreshToken: string) {
-		return this.authService.refreshToken(refreshToken);
+	@ApiBody({ type: RefreshTokenDTO })
+	async restartToken(@Body('refresh_token') refreshToken: RefreshTokenDTO) {
+		return this.authService.refreshToken(refreshToken.refresh_token);
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@Patch('change-password') // or change to @PUT
+	@ApiBearerAuth()
+	@ApiBody({ type: ChangePasswordDTO })
 	async changePassword(
 		@Body() changePasswordDTO: ChangePasswordDTO,
 		@Req() req,
@@ -37,15 +50,15 @@ export class AuthController {
 	}
 
 	@Post('forgot-password')
+	@ApiBody({ type: ForgotPasswordDTO })
 	async forgotPassword(@Body() forgotPasswordDTO: ForgotPasswordDTO) {
 		return this.authService.forgotPassword(forgotPasswordDTO.email);
 	}
 
 	@Post('reset-password')
-	async resetPassword(
-		@Body('token') token: string,
-		@Body('newPassword') newPassword: string,
-	) {
+	@ApiBody({ type: ResetPasswordDTO })
+	async resetPassword(@Body() resetPassword: ResetPasswordDTO) {
+		const { token, newPassword } = resetPassword;
 		return await this.authService.resetPassword(token, newPassword);
 	}
 }
